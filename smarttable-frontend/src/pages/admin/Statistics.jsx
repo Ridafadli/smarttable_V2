@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { FileSpreadsheet, FileText } from 'lucide-react';
 import api from '../../api/axios';
+import PlanGate from '../../components/common/PlanGate';
 import AdminShell from '../../components/layout/AdminShell';
 import { RankingBarChart } from '../../components/statistics/StatisticsCharts';
 import RevenueOrdersChart from '../../components/statistics/StatisticsCharts';
@@ -55,6 +56,7 @@ export default function Statistics() {
   const chartData = report?.revenue?.series ?? [];
 
   return (
+    <PlanGate requiredPlan="pro">
     <AdminShell title="Statistiques" onRefresh={() => refetch()}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -129,5 +131,6 @@ export default function Statistics() {
         />
       </div>
     </AdminShell>
+    </PlanGate>
   );
 }

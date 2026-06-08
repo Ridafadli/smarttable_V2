@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -7,12 +7,15 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 import {
+  AlertTriangle,
   ArrowRight,
   Banknote,
   CalendarClock,
@@ -24,6 +27,7 @@ import {
   Sparkles,
   TrendingUp,
 } from 'lucide-react';
+import useInterval from '../../hooks/useInterval';
 import api from '../../api/axios';
 import AdminShell from '../../components/layout/AdminShell';
 import DashboardKpiCard, { KpiCardSkeleton } from '../../components/dashboard/DashboardKpiCard';
@@ -69,6 +73,8 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [now, setNow] = useState(() => new Date());
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const lastOrderCountRef = useRef(null);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 60_000);
@@ -95,11 +101,42 @@ export default function Dashboard() {
     refetchInterval: 15_000,
   });
 
-  const { data: recentOrders, isLoading: recentLoading } = useQuery({
+  const { data: recentOrders, isLoading: recentLoading, refetch: refetchRecent } = useQuery({
     queryKey: ['orders', 'recent'],
     queryFn: () => api.get('/orders').then((r) => r.data),
     refetchInterval: 15_000,
   });
+
+  const { data: activeOrders, isLoading: activeLoading } = useQuery({
+    queryKey: ['orders', 'active'],
+    queryFn: async () => {
+      const [pending, preparing] = await Promise.all([
+        api.get('/orders', { params: { statut: 'pending' } }).then((r) => r.data),
+        api.get('/orders', { params: { statut: 'preparing' } }).then((r) => r.data),
+      ]);
+      return [...(pending?.data || []), ...(preparing?.data || [])];
+    },
+    refetchInterval: 30_000,
+  });
+
+  const { data: stockAlerts } = useQuery({
+    queryKey: ['stock', 'alerts'],
+    queryFn: () => api.get('/stock/alerts').then((r) => r.data),
+    refetchInterval: 60_000,
+    retry: false,
+  });
+
+  useInterval(() => {
+    refetchRecent();
+  }, 30_000);
+
+  useEffect(() => {
+    const total = recentOrders?.data?.length ?? 0;
+    if (lastOrderCountRef.current !== null && total > lastOrderCountRef.current) {
+      setNewOrdersCount(total - lastOrderCountRef.current);
+    }
+    lastOrderCountRef.current = total;
+  }, [recentOrders?.data?.length]);
 
   const { data: tables, isLoading: tablesLoading } = useQuery({
     queryKey: ['tables'],
@@ -160,6 +197,40 @@ export default function Dashboard() {
 
   return (
     <AdminShell onRefresh={refreshAll} title="Dashboard">
+        {newOrdersCount > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setNewOrdersCount(0);
+              navigate('/orders');
+            }}
+            className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100 animate-slide-up"
+          >
+            <Package className="h-4 w-4" />
+            {newOrdersCount} nouvelle{newOrdersCount > 1 ? 's' : ''} commande{newOrdersCount > 1 ? 's' : ''}
+          </button>
+        )}
+
+        {Array.isArray(stockAlerts) && stockAlerts.length > 0 && (
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 animate-slide-up">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <div>
+              <p className="font-semibold">Alerte stock — {stockAlerts.length} ingrédient(s) sous le seuil</p>
+              <p className="mt-1 text-xs text-amber-800">
+                {stockAlerts.slice(0, 3).map((a) => a.nom).join(', ')}
+                {stockAlerts.length > 3 ? '…' : ''}
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate('/stock')}
+                className="mt-2 text-xs font-medium text-amber-700 underline"
+              >
+                Voir le stock
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mb-8 hero-banner animate-slide-up">
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" aria-hidden />
@@ -246,6 +317,91 @@ export default function Dashboard() {
             </>
           )}
         </div>
+
+        {/* Commandes actives */}
+        <DashboardSection
+          className="mb-8"
+          title="Commandes actives"
+          description="En attente et en préparation · actualisation 30 s"
+          icon={ChefHat}
+        >
+          {activeLoading ? (
+            <SectionSkeleton rows={3} />
+          ) : !activeOrders?.length ? (
+            <EmptyOrders
+              icon={ChefHat}
+              title="Aucune commande active"
+              description="Les commandes en cours apparaîtront ici."
+            />
+          ) : (
+            <div className="grid gap-3">
+              {activeOrders.slice(0, 8).map((order) => {
+                const quickActions =
+                  order.statut === 'pending'
+                    ? [
+                        { statut: 'confirmed', label: 'Confirmer' },
+                        { statut: 'preparing', label: 'En préparation' },
+                        { statut: 'ready', label: 'Prêt' },
+                      ]
+                    : [
+                        { statut: 'ready', label: 'Prêt' },
+                        { statut: 'delivered', label: 'Livré' },
+                      ];
+                return (
+                  <article
+                    key={order.id}
+                    className="flex flex-col gap-3 rounded-xl border border-slate-200/80 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-900">
+                        Table #{order.table?.numero_table} — {order.menu?.nom_plat}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Qté {order.quantite} · {order.total} MAD
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <OrderStatusBadge status={order.statut} />
+                      {quickActions.map((a) => (
+                        <button
+                          key={a.statut}
+                          type="button"
+                          disabled={updateStatus.isPending}
+                          onClick={() => updateStatus.mutate({ id: order.id, statut: a.statut })}
+                          className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-600 disabled:opacity-50"
+                        >
+                          {a.label}
+                        </button>
+                      ))}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </DashboardSection>
+
+        {/* Mini graphique 7 jours */}
+        <DashboardSection
+          className="mb-8"
+          title="Tendance commandes"
+          description="7 derniers jours"
+          icon={TrendingUp}
+        >
+          {dailyLoading ? (
+            <div className="h-40 animate-pulse rounded-xl bg-slate-100" />
+          ) : (
+            <ResponsiveContainer width="100%" height={160}>
+              <LineChart data={chartData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
+                <Line type="monotone" dataKey="total_commandes" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </DashboardSection>
 
         {/* Charts */}
         <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">

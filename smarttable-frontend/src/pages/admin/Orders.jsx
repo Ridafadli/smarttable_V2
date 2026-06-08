@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ClipboardList, Search, SlidersHorizontal } from 'lucide-react';
 import api from '../../api/axios';
@@ -30,7 +30,10 @@ export default function Orders() {
   const [tableFilter, setTableFilter] = useState('');
   const [clientFilter, setClientFilter] = useState('');
   const [sortBy, setSortBy] = useState('latest');
+  const [tableSort, setTableSort] = useState('date');
+  const [datePreset, setDatePreset] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const searchRef = useRef(null);
   const [detailGroup, setDetailGroup] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [updatingKey, setUpdatingKey] = useState(null);
@@ -139,6 +142,46 @@ export default function Orders() {
     queryClient.invalidateQueries({ queryKey: ['orders'] });
   };
 
+  const applyDatePreset = (preset) => {
+    setDatePreset(preset);
+    const now = new Date();
+    if (preset === 'today') {
+      setDateFilter(now.toISOString().slice(0, 10));
+    } else if (preset === 'week') {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 7);
+      setDateFilter(d.toISOString().slice(0, 10));
+    } else if (preset === 'month') {
+      const d = new Date(now.getFullYear(), now.getMonth(), 1);
+      setDateFilter(d.toISOString().slice(0, 10));
+    } else {
+      setDateFilter('');
+    }
+  };
+
+  const handleBulkStatusChange = (selectedGroups, statut) => {
+    selectedGroups.forEach((group) => handleStatusChange(group, statut));
+  };
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        if (e.key.toLowerCase() !== 'f') return;
+      }
+      if (e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        refreshAll();
+      }
+      if (e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setShowFilters(true);
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   return (
     <AdminShell onRefresh={refreshAll}>
       <PageHeader
@@ -156,10 +199,11 @@ export default function Orders() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
+              ref={searchRef}
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher commande, plat, notes..."
+              placeholder="Rechercher commande, plat, notes... (F)"
               className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
             />
           </div>
@@ -202,11 +246,33 @@ export default function Orders() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500">Date</label>
+              <label className="mb-1 block text-xs font-medium text-slate-500">Période</label>
+              <div className="mb-2 flex flex-wrap gap-1">
+                {[
+                  { v: '', l: 'Tout' },
+                  { v: 'today', l: "Aujourd'hui" },
+                  { v: 'week', l: 'Semaine' },
+                  { v: 'month', l: 'Mois' },
+                ].map((p) => (
+                  <button
+                    key={p.v}
+                    type="button"
+                    onClick={() => applyDatePreset(p.v)}
+                    className={`rounded-lg px-2 py-1 text-2xs font-medium ${
+                      datePreset === p.v ? 'bg-accent text-white' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {p.l}
+                  </button>
+                ))}
+              </div>
               <input
                 type="date"
                 value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
+                onChange={(e) => {
+                  setDateFilter(e.target.value);
+                  setDatePreset('');
+                }}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
               />
             </div>
@@ -272,7 +338,10 @@ export default function Orders() {
           onView={setDetailGroup}
           onDelete={setDeleteTarget}
           onStatusChange={handleStatusChange}
+          onBulkStatusChange={handleBulkStatusChange}
           updatingKey={updatingKey}
+          sortBy={tableSort}
+          onSortChange={setTableSort}
         />
       )}
 

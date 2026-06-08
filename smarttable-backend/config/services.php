@@ -35,6 +35,10 @@ return [
         'webhook_url' => env('N8N_WEBHOOK_URL'),
     ],
 
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+    ],
+
     'twilio' => [
         'sid'   => env('TWILIO_SID'),
         'token' => env('TWILIO_TOKEN'),

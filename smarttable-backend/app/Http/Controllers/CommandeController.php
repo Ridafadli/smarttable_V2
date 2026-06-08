@@ -36,20 +36,34 @@ class CommandeController extends Controller
         }
         if (! $restaurant->canAcceptOrder()) {
             return response()->json([
-                'error'   => 'Limite journalière atteinte (plan Free : 10 commandes/jour).',
-                'upgrade' => true,
-            ], 429);
+                'message'       => 'Limite du plan Free atteinte : 10 commandes par jour maximum.',
+                'required_plan' => 'pro',
+                'current_plan'  => $restaurant->plan,
+                'upgrade_url'   => '/subscription',
+            ], 403);
         }
 
-        TableRestaurant::where('id', $validated['table_id'])
+        $table = TableRestaurant::where('id', $validated['table_id'])
             ->where('restaurant_id', $validated['restaurant_id'])
             ->where('is_active', true)
-            ->firstOrFail();
+            ->first();
+
+        if (! $table) {
+            return response()->json([
+                'message' => 'Cette table n\'appartient pas à ce restaurant ou est inactive.',
+            ], 403);
+        }
 
         $menu = Menu::where('id', $validated['menu_id'])
             ->where('restaurant_id', $validated['restaurant_id'])
             ->where('disponible', true)
-            ->firstOrFail();
+            ->first();
+
+        if (! $menu) {
+            return response()->json([
+                'message' => 'Ce plat n\'appartient pas à ce restaurant ou n\'est pas disponible.',
+            ], 403);
+        }
 
         $commande = Commande::create([
             ...$validated,

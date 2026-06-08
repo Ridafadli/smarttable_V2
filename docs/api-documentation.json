@@ -1,0 +1,7294 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SmartTable API",
+    "description": "API REST pour la gestion de restaurants SmartTable — commandes QR, menus, réservations, CRM, stock et statistiques.",
+    "version": "2.0.0",
+    "contact": {
+      "name": "SmartTable",
+      "url": "https://smarttable.ma"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000/api",
+      "description": "Développement local"
+    },
+    {
+      "url": "https://api.smarttable.ma/api",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Authentification et profil restaurant"
+    },
+    {
+      "name": "Public",
+      "description": "Endpoints publics (client QR)"
+    },
+    {
+      "name": "Menus",
+      "description": "Gestion des menus"
+    },
+    {
+      "name": "Tables",
+      "description": "Gestion des tables"
+    },
+    {
+      "name": "QR Codes",
+      "description": "Génération QR codes table"
+    },
+    {
+      "name": "Orders",
+      "description": "Commandes"
+    },
+    {
+      "name": "Reservations",
+      "description": "Réservations"
+    },
+    {
+      "name": "Clients",
+      "description": "CRM clients"
+    },
+    {
+      "name": "Invoices",
+      "description": "Facturation"
+    },
+    {
+      "name": "Stock",
+      "description": "Stock et ingrédients"
+    },
+    {
+      "name": "Notifications",
+      "description": "Notifications admin"
+    },
+    {
+      "name": "Employees",
+      "description": "Personnel (plan Enterprise)"
+    },
+    {
+      "name": "Statistics",
+      "description": "Statistiques (plan Pro+)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Sanctum Token",
+        "description": "Token obtenu via POST /login ou POST /register"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "nom",
+          "email",
+          "mot_de_passe",
+          "mot_de_passe_confirmation"
+        ],
+        "properties": {
+          "nom": {
+            "type": "string",
+            "example": "Restaurant Atlas"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "contact@atlas.ma"
+          },
+          "mot_de_passe": {
+            "type": "string",
+            "minLength": 8,
+            "example": "secret123"
+          },
+          "mot_de_passe_confirmation": {
+            "type": "string",
+            "example": "secret123"
+          },
+          "whatsapp": {
+            "type": "string",
+            "nullable": true,
+            "example": "+212600000000"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "mot_de_passe"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "contact@atlas.ma"
+          },
+          "mot_de_passe": {
+            "type": "string",
+            "example": "secret123"
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "1|abc123token"
+          },
+          "restaurant": {
+            "$ref": "#/components/schemas/Restaurant"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "Restaurant": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "nom": {
+            "type": "string",
+            "example": "Restaurant Atlas"
+          },
+          "email": {
+            "type": "string",
+            "example": "contact@atlas.ma"
+          },
+          "whatsapp": {
+            "type": "string",
+            "nullable": true
+          },
+          "adresse": {
+            "type": "string",
+            "nullable": true
+          },
+          "logo": {
+            "type": "string",
+            "nullable": true
+          },
+          "plan": {
+            "type": "string",
+            "enum": [
+              "free",
+              "pro",
+              "enterprise"
+            ],
+            "example": "free"
+          },
+          "plan_expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          },
+          "tables_count": {
+            "type": "integer"
+          },
+          "menus_count": {
+            "type": "integer"
+          },
+          "orders_today": {
+            "type": "integer"
+          },
+          "limits": {
+            "type": "object"
+          }
+        }
+      },
+      "MenuItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "nom_plat": {
+            "type": "string",
+            "example": "Tajine poulet"
+          },
+          "prix": {
+            "type": "number",
+            "example": 85
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "petit_dejeuner",
+              "dejeuner",
+              "diner",
+              "tout"
+            ]
+          },
+          "categorie": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "disponible": {
+            "type": "boolean"
+          },
+          "image_url": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "OrderCreateRequest": {
+        "type": "object",
+        "required": [
+          "restaurant_id",
+          "table_id",
+          "menu_id",
+          "quantite"
+        ],
+        "properties": {
+          "restaurant_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "table_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "menu_id": {
+            "type": "integer",
+            "example": 5
+          },
+          "quantite": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "example": 2
+          },
+          "sauce": {
+            "type": "string",
+            "nullable": true,
+            "example": "Harissa"
+          },
+          "session_id": {
+            "type": "string",
+            "nullable": true,
+            "example": "sess-abc123"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          }
+        }
+      },
+      "ChatbotRequest": {
+        "type": "object",
+        "required": [
+          "message",
+          "restaurant_id",
+          "table_id",
+          "session_id"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 500,
+            "example": "Quels plats recommandez-vous ?"
+          },
+          "restaurant_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "table_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "session_id": {
+            "type": "string",
+            "maxLength": 64,
+            "example": "sess-abc123"
+          }
+        }
+      },
+      "ReservationRequest": {
+        "type": "object",
+        "required": [
+          "table_restaurant_id",
+          "client_nom",
+          "client_telephone",
+          "date_reservation",
+          "heure_reservation",
+          "nombre_personnes",
+          "statut"
+        ],
+        "properties": {
+          "table_restaurant_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "client_nom": {
+            "type": "string",
+            "example": "Ahmed Benali"
+          },
+          "client_telephone": {
+            "type": "string",
+            "example": "+212600000000"
+          },
+          "date_reservation": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-06-15"
+          },
+          "heure_reservation": {
+            "type": "string",
+            "example": "19:30"
+          },
+          "nombre_personnes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "example": 4
+          },
+          "statut": {
+            "type": "string",
+            "enum": [
+              "confirmee",
+              "en_attente",
+              "annulee"
+            ],
+            "example": "confirmee"
+          },
+          "duree_minutes": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 480,
+            "example": 120
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ClientRequest": {
+        "type": "object",
+        "required": [
+          "nom_complet",
+          "telephone"
+        ],
+        "properties": {
+          "nom_complet": {
+            "type": "string",
+            "example": "Ahmed Benali"
+          },
+          "telephone": {
+            "type": "string",
+            "example": "+212600000000"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "adresse": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "InvoiceCreateRequest": {
+        "type": "object",
+        "required": [
+          "lignes"
+        ],
+        "properties": {
+          "client_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "client_nom": {
+            "type": "string",
+            "nullable": true
+          },
+          "client_telephone": {
+            "type": "string",
+            "nullable": true
+          },
+          "client_email": {
+            "type": "string",
+            "nullable": true
+          },
+          "client_adresse": {
+            "type": "string",
+            "nullable": true
+          },
+          "table_numero": {
+            "type": "integer",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "lignes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "description",
+                "quantite",
+                "prix_unitaire"
+              ],
+              "properties": {
+                "description": {
+                  "type": "string",
+                  "example": "Tajine poulet"
+                },
+                "quantite": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "example": 2
+                },
+                "prix_unitaire": {
+                  "type": "number",
+                  "minimum": 0,
+                  "example": 85
+                }
+              }
+            }
+          }
+        }
+      },
+      "IngredientRequest": {
+        "type": "object",
+        "required": [
+          "nom",
+          "unite",
+          "quantite_disponible",
+          "quantite_minimale"
+        ],
+        "properties": {
+          "nom": {
+            "type": "string",
+            "example": "Tomates"
+          },
+          "unite": {
+            "type": "string",
+            "example": "kg"
+          },
+          "quantite_disponible": {
+            "type": "number",
+            "minimum": 0,
+            "example": 10
+          },
+          "quantite_minimale": {
+            "type": "number",
+            "minimum": 0,
+            "example": 2
+          },
+          "categorie": {
+            "type": "string",
+            "nullable": true,
+            "example": "Légumes"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "EmployeeRequest": {
+        "type": "object",
+        "required": [
+          "nom",
+          "role"
+        ],
+        "properties": {
+          "nom": {
+            "type": "string",
+            "example": "Alami"
+          },
+          "prenom": {
+            "type": "string",
+            "nullable": true,
+            "example": "Karim"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "telephone": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "manager",
+              "serveur",
+              "cuisinier"
+            ],
+            "example": "serveur"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "use_custom_permissions": {
+            "type": "boolean"
+          },
+          "date_embauche": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "StockMovementRequest": {
+        "type": "object",
+        "required": [
+          "ingredient_id",
+          "type",
+          "quantite"
+        ],
+        "properties": {
+          "ingredient_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "entree",
+              "sortie"
+            ],
+            "example": "entree"
+          },
+          "quantite": {
+            "type": "number",
+            "minimum": 0.001,
+            "example": 5
+          },
+          "motif": {
+            "type": "string",
+            "nullable": true,
+            "example": "Réapprovisionnement"
+          }
+        }
+      },
+      "TableRequest": {
+        "type": "object",
+        "required": [
+          "numero_table"
+        ],
+        "properties": {
+          "numero_table": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "nom": {
+            "type": "string",
+            "nullable": true,
+            "example": "Terrasse"
+          },
+          "capacite": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "example": 4
+          },
+          "statut": {
+            "type": "string",
+            "enum": [
+              "disponible",
+              "occupee",
+              "reservee",
+              "nettoyage"
+            ]
+          }
+        }
+      },
+      "OrderStatusRequest": {
+        "type": "object",
+        "required": [
+          "statut"
+        ],
+        "properties": {
+          "statut": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "confirmed",
+              "preparing",
+              "ready",
+              "delivered",
+              "cancelled"
+            ],
+            "example": "preparing"
+          }
+        }
+      },
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Public"
+        ],
+        "summary": "Health check",
+        "description": "Vérifie l'état de l'API, la connexion base de données et la configuration des services.",
+        "responses": {
+          "200": {
+            "description": "Statut système",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok",
+                        "degraded"
+                      ]
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "database": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string",
+                      "example": "2.0.0"
+                    },
+                    "services": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "example": {
+                  "status": "ok",
+                  "timestamp": "2026-06-08T12:00:00+00:00",
+                  "database": "connected",
+                  "version": "2.0.0",
+                  "services": {
+                    "n8n": "configured",
+                    "whatsapp": "not_configured",
+                    "openai": "configured"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Inscription restaurant",
+        "description": "Crée un compte restaurant (plan free) et retourne un token Sanctum.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              },
+              "example": {
+                "nom": "Restaurant Atlas",
+                "email": "contact@atlas.ma",
+                "mot_de_passe": "secret123",
+                "mot_de_passe_confirmation": "secret123",
+                "whatsapp": "+212600000000"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Inscription réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                },
+                "example": {
+                  "message": "Inscription réussie",
+                  "token": "1|abc123",
+                  "restaurant": {
+                    "id": 1,
+                    "nom": "Restaurant Atlas",
+                    "email": "contact@atlas.ma",
+                    "plan": "free"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Connexion",
+        "description": "Authentifie un restaurant et retourne un token Bearer Sanctum.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "example": {
+                "email": "contact@atlas.ma",
+                "mot_de_passe": "secret123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connexion réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                },
+                "example": {
+                  "token": "2|xyz789",
+                  "restaurant": {
+                    "id": 1,
+                    "nom": "Restaurant Atlas",
+                    "plan": "pro"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Déconnexion",
+        "description": "Révoque le token d'accès courant.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Déconnecté",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                },
+                "example": {
+                  "message": "Déconnecté avec succès"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Profil courant",
+        "description": "Retourne le restaurant authentifié avec statistiques et limites de plan.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profil restaurant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "restaurant": {
+                    "id": 1,
+                    "nom": "Restaurant Atlas",
+                    "plan": "pro",
+                    "limits": {
+                      "can_add_table": true,
+                      "statistics": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile": {
+      "put": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Mettre à jour le profil",
+        "description": "Met à jour nom, whatsapp, adresse et logo (multipart/form-data ou JSON).",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nom": {
+                    "type": "string"
+                  },
+                  "whatsapp": {
+                    "type": "string"
+                  },
+                  "adresse": {
+                    "type": "string"
+                  },
+                  "logo": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "remove_logo": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nom": {
+                    "type": "string"
+                  },
+                  "whatsapp": {
+                    "type": "string"
+                  },
+                  "adresse": {
+                    "type": "string"
+                  },
+                  "remove_logo": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "nom": "Restaurant Atlas Premium",
+                "whatsapp": "+212600000001",
+                "adresse": "Casablanca"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profil mis à jour",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Profil mis à jour",
+                  "restaurant": {
+                    "id": 1,
+                    "nom": "Restaurant Atlas Premium"
+                  },
+                  "regenerate_qr": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/restaurants/{restaurantId}": {
+      "get": {
+        "tags": [
+          "Public"
+        ],
+        "summary": "Infos restaurant public",
+        "description": "Données publiques pour la page commande client (optionnel: table_id en query).",
+        "parameters": [
+          {
+            "name": "restaurantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          },
+          {
+            "name": "table_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contexte restaurant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "restaurant": {
+                    "id": 1,
+                    "nom": "Restaurant Atlas"
+                  },
+                  "table": {
+                    "id": 1,
+                    "numero_table": 1
+                  },
+                  "meal_period": {
+                    "type": "dejeuner",
+                    "label": "Déjeuner"
+                  },
+                  "can_order": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/menus/public/{restaurantId}": {
+      "get": {
+        "tags": [
+          "Public"
+        ],
+        "summary": "Menu public",
+        "description": "Liste des plats disponibles filtrés par période repas courante.",
+        "parameters": [
+          {
+            "name": "restaurantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Menus publics",
+            "content": {
+              "application/json": {
+                "example": {
+                  "menus": [
+                    {
+                      "id": 1,
+                      "nom_plat": "Tajine poulet",
+                      "prix": 85
+                    }
+                  ],
+                  "meal_period": {
+                    "type": "dejeuner",
+                    "label": "Déjeuner"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders": {
+      "post": {
+        "tags": [
+          "Public",
+          "Orders"
+        ],
+        "summary": "Créer une commande (client)",
+        "description": "Endpoint public pour passer commande depuis le QR code table.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderCreateRequest"
+              },
+              "example": {
+                "restaurant_id": 1,
+                "table_id": 1,
+                "menu_id": 5,
+                "quantite": 2,
+                "sauce": "Harissa",
+                "session_id": "sess-abc123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Commande créée",
+            "content": {
+              "application/json": {
+                "example": {
+                  "commande": {
+                    "id": 42,
+                    "statut": "confirmed",
+                    "total": 170
+                  },
+                  "message": "Commande enregistrée avec succès!"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Restaurant indisponible ou limite plan",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Limite du plan Free atteinte : 10 commandes par jour maximum.",
+                  "required_plan": "pro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Lister les commandes",
+        "description": "Liste paginée des commandes admin avec filtres.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "statut",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "table_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "latest",
+                "oldest",
+                "amount",
+                "statut"
+              ]
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste paginée",
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "id": 42,
+                      "statut": "confirmed",
+                      "total": 170
+                    }
+                  ],
+                  "current_page": 1,
+                  "total": 1
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chatbot/message": {
+      "post": {
+        "tags": [
+          "Public"
+        ],
+        "summary": "Message chatbot",
+        "description": "Envoie un message au chatbot IA pour recommandations menu (rate limit 20/min/session).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatbotRequest"
+              },
+              "example": {
+                "message": "Quels plats recommandez-vous ?",
+                "restaurant_id": 1,
+                "table_id": 1,
+                "session_id": "sess-abc123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Réponse chatbot",
+            "content": {
+              "application/json": {
+                "example": {
+                  "reply": "Je recommande le tajine poulet.",
+                  "source": "openai",
+                  "session_id": "sess-abc123",
+                  "timestamp": "2026-06-08T12:00:00+00:00"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/menus": {
+      "get": {
+        "tags": [
+          "Menus"
+        ],
+        "summary": "Lister les menus",
+        "description": "Retourne tous les plats du restaurant authentifié.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste menus",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MenuItem"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "nom_plat": "Tajine poulet",
+                    "prix": 85,
+                    "type": "dejeuner",
+                    "disponible": true
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Menus"
+        ],
+        "summary": "Créer un plat",
+        "description": "Ajoute un plat au menu (multipart pour image).",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "nom_plat",
+                  "prix",
+                  "type"
+                ],
+                "properties": {
+                  "nom_plat": {
+                    "type": "string"
+                  },
+                  "prix": {
+                    "type": "number"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "petit_dejeuner",
+                      "dejeuner",
+                      "diner",
+                      "tout"
+                    ]
+                  },
+                  "categorie": {
+                    "type": "string"
+                  },
+                  "variantes": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "disponible": {
+                    "type": "boolean"
+                  },
+                  "ordre": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Plat créé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuItem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/menus/{menu}": {
+      "put": {
+        "tags": [
+          "Menus"
+        ],
+        "summary": "Modifier un plat",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "menu",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nom_plat": {
+                    "type": "string"
+                  },
+                  "prix": {
+                    "type": "number"
+                  },
+                  "disponible": {
+                    "type": "boolean"
+                  },
+                  "remove_image": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Plat mis à jour",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuItem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Menus"
+        ],
+        "summary": "Supprimer un plat",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "menu",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Supprimé",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Menu supprimé"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/menus/{menu}/regenerate-image": {
+      "post": {
+        "tags": [
+          "Menus"
+        ],
+        "summary": "Régénérer image plat",
+        "description": "Génère automatiquement une image si aucune image manuelle.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "menu",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image régénérée",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Image générée automatiquement",
+                  "image": "menus/auto.jpg"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tables": {
+      "get": {
+        "tags": [
+          "Tables"
+        ],
+        "summary": "Lister les tables",
+        "description": "Tables enrichies avec statut effectif, réservations et commandes actives.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste tables",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": 1,
+                    "numero_table": 1,
+                    "capacite": 4,
+                    "effective_statut": "disponible"
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Tables"
+        ],
+        "summary": "Créer une table",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableRequest"
+              },
+              "example": {
+                "numero_table": 1,
+                "nom": "Terrasse",
+                "capacite": 4
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Table créée",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "numero_table": 1,
+                  "statut": "disponible"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Limite plan free (3 tables)",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Limite de 3 tables atteinte pour le plan gratuit."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tables/{table}": {
+      "get": {
+        "tags": [
+          "Tables"
+        ],
+        "summary": "Détail table",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "table",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Détail table",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "numero_table": 1,
+                  "active_orders": [],
+                  "reservations": []
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Tables"
+        ],
+        "summary": "Modifier une table",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "table",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "numero_table": {
+                    "type": "integer"
+                  },
+                  "capacite": {
+                    "type": "integer"
+                  },
+                  "statut": {
+                    "type": "string"
+                  },
+                  "pos_x": {
+                    "type": "integer"
+                  },
+                  "pos_y": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "example": {
+                "statut": "disponible",
+                "capacite": 6
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Table mise à jour"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Tables"
+        ],
+        "summary": "Supprimer une table",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "table",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Supprimée",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Table supprimée"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tables/{table}/reserve": {
+      "post": {
+        "tags": [
+          "Tables"
+        ],
+        "summary": "Réserver table manuellement",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "table",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hours": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 24,
+                    "example": 2
+                  }
+                }
+              },
+              "example": {
+                "hours": 2
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Table réservée"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tables/{tableId}/qrcode": {
+      "get": {
+        "tags": [
+          "QR Codes"
+        ],
+        "summary": "Générer QR code",
+        "description": "Génère ou régénère le QR code pour une table.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "QR généré",
+            "content": {
+              "application/json": {
+                "example": {
+                  "qr_code_url": "/storage/qrcodes/table_1.png",
+                  "chatbot_url": "http://localhost:5175/order?restaurant=1&table=1",
+                  "format": "png",
+                  "has_logo": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tables/{tableId}/qrcode/download": {
+      "get": {
+        "tags": [
+          "QR Codes"
+        ],
+        "summary": "Télécharger QR code",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fichier image QR",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/stats": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Statistiques commandes",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stats",
+            "content": {
+              "application/json": {
+                "example": {
+                  "total": 150,
+                  "pending": 2,
+                  "preparing": 5,
+                  "ready": 1,
+                  "served": 140,
+                  "cancelled": 2,
+                  "today_revenue": 1250
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{commande}": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Détail commande",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "commande",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Commande"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Modifier commande",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "commande",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "quantite": {
+                    "type": "integer"
+                  },
+                  "sauce": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "statut": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "quantite": 3
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Commande mise à jour"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Supprimer commande",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "commande",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Supprimée",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Commande supprimée"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{commande}/status": {
+      "patch": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Changer statut commande",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "commande",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderStatusRequest"
+              },
+              "example": {
+                "statut": "preparing"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Statut mis à jour"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reservations/stats": {
+      "get": {
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Statistiques réservations",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stats",
+            "content": {
+              "application/json": {
+                "example": {
+                  "total": 50,
+                  "confirmee": 40,
+                  "en_attente": 5,
+                  "annulee": 5,
+                  "today": 3,
+                  "upcoming": 12
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reservations/check-conflicts": {
+      "post": {
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Vérifier conflits",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "table_restaurant_id",
+                  "date_reservation",
+                  "heure_reservation"
+                ],
+                "properties": {
+                  "table_restaurant_id": {
+                    "type": "integer"
+                  },
+                  "date_reservation": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "heure_reservation": {
+                    "type": "string"
+                  },
+                  "duree_minutes": {
+                    "type": "integer"
+                  },
+                  "exclude_id": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "example": {
+                "table_restaurant_id": 1,
+                "date_reservation": "2026-06-15",
+                "heure_reservation": "19:30",
+                "duree_minutes": 120
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Résultat conflit",
+            "content": {
+              "application/json": {
+                "example": {
+                  "has_conflict": false,
+                  "conflict": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reservations": {
+      "get": {
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Lister réservations",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "statut",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "table_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste paginée"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Créer réservation",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservationRequest"
+              },
+              "example": {
+                "table_restaurant_id": 1,
+                "client_nom": "Ahmed Benali",
+                "client_telephone": "+212600000000",
+                "date_reservation": "2026-06-15",
+                "heure_reservation": "19:30",
+                "nombre_personnes": 4,
+                "statut": "confirmee"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Réservation créée"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reservations/{reservation}": {
+      "get": {
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Détail réservation",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reservation",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Réservation"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Modifier réservation",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reservation",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservationRequest"
+              },
+              "example": {
+                "statut": "confirmee",
+                "nombre_personnes": 6
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mise à jour"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Reservations"
+        ],
+        "summary": "Supprimer réservation",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "reservation",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Supprimée",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Réservation supprimée"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/stats": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Statistiques CRM",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stats clients",
+            "content": {
+              "application/json": {
+                "example": {
+                  "total": 120,
+                  "with_email": 80,
+                  "active_this_month": 25,
+                  "total_spent": 45000,
+                  "with_reservations": 30
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Lister clients",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "has_email",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "has_orders",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste paginée"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Créer client",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientRequest"
+              },
+              "example": {
+                "nom_complet": "Ahmed Benali",
+                "telephone": "+212600000000",
+                "email": "ahmed@email.com"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Client créé"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{client}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Détail client",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "client",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Client avec historique"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Modifier client",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "client",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientRequest"
+              },
+              "example": {
+                "nom_complet": "Ahmed Benali",
+                "telephone": "+212600000000"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mis à jour"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Supprimer client",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "client",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Supprimé",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Client supprimé"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices/stats": {
+      "get": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Statistiques factures",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stats",
+            "content": {
+              "application/json": {
+                "example": {
+                  "total": 200,
+                  "this_month": 15,
+                  "total_amount": 85000,
+                  "month_amount": 6200,
+                  "cancelled": 3
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices/generate": {
+      "post": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Générer facture depuis commandes",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "session_id": {
+                    "type": "string",
+                    "example": "sess-abc123"
+                  },
+                  "commande_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "example": [
+                      42,
+                      43
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "session_id": "sess-abc123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Facture générée"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices": {
+      "get": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Lister factures",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "statut",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste paginée"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Créer facture manuelle",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceCreateRequest"
+              },
+              "example": {
+                "client_nom": "Ahmed Benali",
+                "lignes": [
+                  {
+                    "description": "Tajine poulet",
+                    "quantite": 2,
+                    "prix_unitaire": 85
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Facture créée"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices/{facture}": {
+      "get": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Détail facture",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "facture",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Facture avec lignes"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Supprimer facture",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "facture",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Supprimée",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Facture supprimée"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices/{facture}/pdf": {
+      "get": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Télécharger PDF facture",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "facture",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fichier PDF",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices/{facture}/print": {
+      "get": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Vue impression facture",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "facture",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTML impression",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invoices/{facture}/cancel": {
+      "patch": {
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Annuler facture",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "facture",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Facture annulée"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stock/stats": {
+      "get": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Statistiques stock",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stats stock",
+            "content": {
+              "application/json": {
+                "example": {
+                  "total_ingredients": 25,
+                  "low_stock_count": 3,
+                  "movements_today": 8,
+                  "entries_today": 15,
+                  "exits_today": 10,
+                  "healthy_count": 22
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stock/alerts": {
+      "get": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Alertes stock faible",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ingrédients en alerte",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": 1,
+                    "nom": "Tomates",
+                    "quantite_disponible": 1,
+                    "quantite_minimale": 5,
+                    "deficit": 4
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stock/movements": {
+      "get": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Historique mouvements",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ingredient_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste paginée"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Enregistrer mouvement stock",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockMovementRequest"
+              },
+              "example": {
+                "ingredient_id": 1,
+                "type": "entree",
+                "quantite": 5,
+                "motif": "Réapprovisionnement"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mouvement créé"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ingredients": {
+      "get": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Lister ingrédients",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "low_stock",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "categorie",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste ingrédients"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Créer ingrédient",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngredientRequest"
+              },
+              "example": {
+                "nom": "Tomates",
+                "unite": "kg",
+                "quantite_disponible": 10,
+                "quantite_minimale": 2
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Ingrédient créé"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ingredients/{ingredient}": {
+      "get": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Détail ingrédient",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ingredient",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ingrédient"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Modifier ingrédient",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ingredient",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngredientRequest"
+              },
+              "example": {
+                "nom": "Tomates",
+                "unite": "kg",
+                "quantite_disponible": 8,
+                "quantite_minimale": 3
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mis à jour"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Stock"
+        ],
+        "summary": "Supprimer ingrédient",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ingredient",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Supprimé",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Ingrédient supprimé"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/unread-count": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Compteur non lues",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Compteur",
+            "content": {
+              "application/json": {
+                "example": {
+                  "count": 5
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/read-all": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Tout marquer comme lu",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Toutes les notifications ont été lues"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/{notification}/read": {
+      "patch": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Marquer comme lue",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "notification",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification lue"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Lister notifications",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "unread_only",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste paginée"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/{notification}": {
+      "delete": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Supprimer notification",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "notification",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Supprimée",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Notification supprimée"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/employees/stats": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Statistiques personnel",
+        "description": "Requiert plan Enterprise (multi_admin).",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stats",
+            "content": {
+              "application/json": {
+                "example": {
+                  "total": 8,
+                  "active": 7,
+                  "inactive": 1,
+                  "by_role": {
+                    "admin": 1,
+                    "manager": 2,
+                    "serveur": 3,
+                    "cuisinier": 2
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Plan Enterprise requis",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Fonctionnalité réservée au plan Enterprise"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/employees/permissions-config": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Configuration permissions",
+        "description": "Requiert plan Enterprise.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config rôles et permissions"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/employees/activity": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Journal activité",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste paginée"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/employees": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Lister employés",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste paginée"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Créer employé",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeRequest"
+              },
+              "example": {
+                "nom": "Alami",
+                "prenom": "Karim",
+                "role": "serveur",
+                "email": "karim@restaurant.ma"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Employé créé"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/employees/{employee}": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Détail employé",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Employé avec historique"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Modifier employé",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeRequest"
+              },
+              "example": {
+                "role": "manager",
+                "is_active": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mis à jour"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Supprimer employé",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "employee",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Supprimé",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Employé supprimé"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/statistics": {
+      "get": {
+        "tags": [
+          "Statistics"
+        ],
+        "summary": "Tableau de bord statistiques",
+        "description": "Requiert plan Pro ou Enterprise.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "KPIs",
+            "content": {
+              "application/json": {
+                "example": {
+                  "today_orders": 25,
+                  "pending_orders": 3,
+                  "today_revenue": 2100,
+                  "active_tables": 8,
+                  "popular_dishes": [
+                    {
+                      "nom_plat": "Tajine poulet",
+                      "total": 12
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Plan Pro+ requis",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Fonctionnalité réservée aux plans Pro et Enterprise"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/statistics/daily": {
+      "get": {
+        "tags": [
+          "Statistics"
+        ],
+        "summary": "CA journalier (7 jours)",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Série 7 jours",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "date": "2026-06-01",
+                    "total_commandes": 20,
+                    "chiffre": 1800
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/statistics/popular": {
+      "get": {
+        "tags": [
+          "Statistics"
+        ],
+        "summary": "Plats populaires",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Top 10 plats",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "nom_plat": "Tajine poulet",
+                    "total": 150
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/statistics/report": {
+      "get": {
+        "tags": [
+          "Statistics"
+        ],
+        "summary": "Rapport complet",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "year"
+              ]
+            },
+            "example": "week"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rapport JSON"
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/statistics/export/pdf": {
+      "get": {
+        "tags": [
+          "Statistics"
+        ],
+        "summary": "Export PDF statistiques",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "year"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/statistics/export/excel": {
+      "get": {
+        "tags": [
+          "Statistics"
+        ],
+        "summary": "Export CSV statistiques",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "year"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV UTF-8",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non authentifié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "message": "Unauthenticated."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Accès refusé ou limite de plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Non autorisé"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Erreur de validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                },
+                "example": {
+                  "message": "The given data was invalid.",
+                  "errors": {
+                    "email": [
+                      "Identifiants incorrects."
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
