@@ -22,6 +22,5 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 
 COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
 
-EXPOSE 80
-
-CMD ["apache2-foreground"]
+EXPOSE 8080
+CMD ["/bin/sh", "-c", "sed -i 's/80/$PORT/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf && apache2-foreground"]
