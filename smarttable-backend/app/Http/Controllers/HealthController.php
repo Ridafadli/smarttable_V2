@@ -2,37 +2,31 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
 class HealthController extends Controller
 {
-    public function __invoke()
+    public function check(): JsonResponse
     {
-        $dbStatus = 'error';
+        $db = 'error';
         try {
             DB::connection()->getPdo();
-            $dbStatus = 'connected';
-        } catch (\Throwable) {
-            $dbStatus = 'error';
+            $db = 'connected';
+        } catch (\Exception $e) {
         }
 
         return response()->json([
-            'status'    => $dbStatus === 'connected' ? 'ok' : 'degraded',
+            'status'    => $db === 'connected' ? 'ok' : 'degraded',
             'timestamp' => now()->toIso8601String(),
-            'database'  => $dbStatus,
+            'database'  => $db,
             'version'   => '2.0.0',
             'services'  => [
-                'n8n'      => $this->configured('services.n8n.webhook_url'),
-                'whatsapp' => $this->configured('services.twilio.sid') && $this->configured('services.twilio.token'),
-                'openai'   => $this->configured('services.openai.key') || $this->configured('openai.api_key'),
+                'n8n'        => config('services.n8n.webhook_url') ? 'configured' : 'not_configured',
+                'whatsapp'   => config('services.twilio.sid') ? 'configured' : 'not_configured',
+                'openai'     => config('services.openai.key') ? 'configured' : 'not_configured',
+                'cloudinary' => config('cloudinary.cloud_name') ? 'configured' : 'not_configured',
             ],
         ]);
-    }
-
-    private function configured(string $key): string
-    {
-        $value = config($key);
-
-        return filled($value) ? 'configured' : 'not_configured';
     }
 }

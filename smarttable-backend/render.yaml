@@ -1,38 +1,64 @@
 services:
   - type: web
     name: smarttable-backend
-    env: php
-    buildCommand: composer install --no-dev && php artisan config:cache && php artisan route:cache && php artisan migrate --force
+    runtime: image
+    image:
+      url: docker.io/library/php:8.2-apache
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader
+      php artisan config:cache
+      php artisan route:cache
+      php artisan view:cache
     startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
+    healthCheckPath: /api/health
     envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_URL
+        sync: false
       - key: APP_KEY
         generateValue: true
-      - key: DB_CONNECTION
-        value: mysql
-      - key: DB_HOST
-        fromDatabase:
-          name: smarttable-db
-          property: host
-      - key: DB_DATABASE
-        fromDatabase:
-          name: smarttable-db
-          property: database
-      - key: DB_USERNAME
-        fromDatabase:
-          name: smarttable-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: smarttable-db
-          property: password
+      - key: FRONTEND_URL
+        sync: false
       - key: SANCTUM_STATEFUL_DOMAINS
         sync: false
       - key: SESSION_DOMAIN
         sync: false
-      - key: FRONTEND_URL
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_HOST
         sync: false
-
-databases:
-  - name: smarttable-db
-    plan: free
-    databaseName: smarttable
+      - key: DB_PORT
+        value: 3306
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: CACHE_DRIVER
+        value: file
+      - key: SESSION_DRIVER
+        value: file
+      - key: FILESYSTEM_DISK
+        value: public
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: N8N_WEBHOOK_URL
+        sync: false
+      - key: TWILIO_SID
+        sync: false
+      - key: TWILIO_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false

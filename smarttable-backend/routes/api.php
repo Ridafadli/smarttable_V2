@@ -2,12 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\HealthController;
 use App\Http\Controllers\PublicRestaurantController;
 use App\Http\Controllers\{MenuController, TableController, CommandeController, QrCodeController, StatisticsController, ChatbotController, ReservationController, ClientController, FactureController, IngredientController, StockController, NotificationController, EmployeeController};
 
 // Routes publiques
-Route::get('/health', HealthController::class);
+Route::get('/health', [App\Http\Controllers\HealthController::class, 'check']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 

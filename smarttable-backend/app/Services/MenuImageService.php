@@ -167,4 +167,20 @@ class MenuImageService
 
         return preg_replace('/[^a-z0-9\s]/', '', $text) ?? $text;
     }
+
+    private function uploadImage(string $localPath): string
+    {
+        if (config('cloudinary.cloud_name')) {
+            $response = Http::attach('file', file_get_contents($localPath), 'image.jpg')
+                ->post('https://api.cloudinary.com/v1_1/'.config('cloudinary.cloud_name').'/image/upload', [
+                    'upload_preset' => config('cloudinary.upload_preset'),
+                    'api_key'       => config('cloudinary.api_key'),
+                ]);
+
+            return $response->json('secure_url');
+        }
+
+        // fallback local
+        return asset('storage/'.basename($localPath));
+    }
 }

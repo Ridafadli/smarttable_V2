@@ -1,27 +1,27 @@
-FROM php:8.2-fpm-alpine
+FROM php:8.2-apache
 
-RUN apk add --no-cache \
-    libpng-dev libjpeg-turbo-dev freetype-dev libzip-dev \
-    oniguruma-dev icu-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) \
-        pdo_mysql mbstring openssl tokenizer xml ctype json bcmath gd zip exif \
-    && apk del --purge autoconf g++ make
+RUN apt-get update && apt-get install -y \
+    git curl zip unzip libzip-dev libpng-dev libonig-dev libxml2-dev \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip \
+    && a2enmod rewrite \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
-
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
-
 COPY . .
-RUN composer dump-autoload --optimize \
-    && php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache \
-    && chown -R www-data:www-data storage bootstrap/cache
 
-EXPOSE 9000
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-CMD ["php-fpm"]
+RUN cp .env.example .env \
+    && php artisan key:generate \
+    && php artisan storage:link
+
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage
+
+COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
+
+EXPOSE 80
+
+CMD ["apache2-foreground"]
