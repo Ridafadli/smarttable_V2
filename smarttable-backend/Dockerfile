@@ -1,11 +1,8 @@
-FROM php:8.2-apache
+FROM php:8.2-fpm
 
 RUN apt-get update && apt-get install -y \
-    git curl zip unzip libzip-dev libpng-dev libonig-dev libxml2-dev \
+    git curl zip unzip libzip-dev libpng-dev libonig-dev libxml2-dev nginx \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip \
-    && rm -f /etc/apache2/mods-enabled/mpm_*.load \
-    && rm -f /etc/apache2/mods-enabled/mpm_*.conf \
-    && a2enmod mpm_prefork rewrite \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -22,7 +19,8 @@ RUN cp .env.example .env \
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage
 
-COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
+COPY docker/nginx.conf /etc/nginx/sites-available/default
 
 EXPOSE 8080
-CMD ["/bin/sh", "-c", "sed -i \"s/80/$PORT/g\" /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf && apache2-foreground"]
+
+CMD ["/bin/sh", "-c", "sed -i \"s/8080/$PORT/g\" /etc/nginx/sites-available/default && php-fpm -D && nginx -g 'daemon off;'"]
